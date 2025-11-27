@@ -1,0 +1,413 @@
+---
+import '../styles/global.css'
+
+const canonicalURL = new URL(Astro.url.href);
+const title = "Jose y Nahomi - Una Invitación"
+const description = "Invitación a la boda civil de Jose Calles y Nahomi Santos"
+---
+
+<html lang="es">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<meta name="generator" content={Astro.generator} />
+		<title>{title}</title>
+		<meta name="description" content={description} />
+
+        <meta property="og:type" content="website"/>
+        <meta property="og:url" content={canonicalURL.href}/>
+        <meta property="og:title" content={title}/>
+        <meta property="og:description" content={description}/>
+        <meta property="og:site_name" content={import.meta.env.PUBLIC_APP_NAME}>
+        <meta property="og:author:username" content={import.meta.env.PUBLIC_APP_NAME}>
+        <meta property="og:image" content={`${Astro.site}open-graph.png`}/>
+        <meta property="og:image:type" content="image/png">
+        <meta property="og:image:width" content="1200">
+        <meta property="og:image:height" content="630">
+
+        <meta name="twitter:card" content="summary_large_image"/>
+        <meta name="twitter:url" content={canonicalURL.href}/>
+        <meta name="twitter:title" content={title}/>
+        <meta name="twitter:description" content={description}/>
+        <meta name="twitter:image" content={`${Astro.site}twitter.png`}/>
+	</head>
+	<body class="overflow-hidden bg-[#faf8f5]">
+		<div id="canvas-container" class="fixed inset-0 w-full h-full"></div>
+
+		<!-- Countdown Timer -->
+		<div id="countdown" class="fixed top-8 left-1/2 -translate-x-1/2 text-center z-10 opacity-0 transition-opacity duration-1000">
+			<p id="countdown-label" class="text-[#6b6b70] text-xs tracking-[0.3em] mb-3 font-light uppercase">Faltan</p>
+			<div class="flex gap-8 text-[#4a4a50]">
+				<div class="flex flex-col items-center">
+					<span id="days" class="text-4xl md:text-5xl font-extralight tabular-nums">--</span>
+					<p id="days-label" class="text-xs tracking-widest mt-1 font-light text-[#6b6b70]">días</p>
+				</div>
+				<div class="flex flex-col items-center">
+					<span id="hours" class="text-4xl md:text-5xl font-extralight tabular-nums">--</span>
+					<p id="hours-label" class="text-xs tracking-widest mt-1 font-light text-[#6b6b70]">horas</p>
+				</div>
+				<div class="flex flex-col items-center">
+					<span id="minutes" class="text-4xl md:text-5xl font-extralight tabular-nums">--</span>
+					<p id="minutes-label" class="text-xs tracking-widest mt-1 font-light text-[#6b6b70]">minutos</p>
+				</div>
+			</div>
+		</div>
+
+		<!-- Language Toggle -->
+		<div id="lang-toggle" class="fixed bottom-8 left-1/2 -translate-x-1/2 z-10 opacity-0 transition-opacity duration-1000">
+			<div class="flex items-center gap-1 bg-white/80 backdrop-blur-sm rounded-full p-1 shadow-sm border border-[#e5e5e5]">
+				<button id="btn-es" class="text-sm font-medium text-[#4a4a50] px-4 py-1.5 rounded-full transition-all bg-[#f0ebe4]">
+					Español
+				</button>
+				<button id="btn-en" class="text-sm font-medium text-[#8a8a90] px-4 py-1.5 rounded-full transition-all hover:text-[#4a4a50]">
+					English
+				</button>
+			</div>
+		</div>
+
+		
+		<script>
+			import * as THREE from 'three';
+			import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+			import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+			import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
+
+			// Scene setup
+			const container = document.getElementById('canvas-container')!;
+			const scene = new THREE.Scene();
+			scene.background = new THREE.Color(0xfaf8f5); // warm cream
+
+			// Camera - start zoomed out for mobile
+			const camera = new THREE.PerspectiveCamera(
+				45,
+				window.innerWidth / window.innerHeight,
+				0.1,
+				1000
+			);
+			camera.position.z = 7;
+
+			// Renderer
+			const renderer = new THREE.WebGLRenderer({
+				antialias: true,
+				alpha: true
+			});
+			renderer.setSize(window.innerWidth, window.innerHeight);
+			renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+			renderer.shadowMap.enabled = true;
+			renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+			container.appendChild(renderer.domElement);
+
+			// Post-processing setup
+			const composer = new EffectComposer(renderer);
+			const renderPass = new RenderPass(scene, camera);
+			composer.addPass(renderPass);
+
+			const bloomPass = new UnrealBloomPass(
+				new THREE.Vector2(window.innerWidth, window.innerHeight),
+				0.05,  // strength - minimal bloom
+				0.1,   // radius - very tight
+				0.99   // threshold - only the brightest highlights
+			);
+			composer.addPass(bloomPass);
+
+			// Lighting - bright and even to preserve image colors
+			const ambientLight = new THREE.AmbientLight(0xffffff, 1.5);
+			scene.add(ambientLight);
+
+			const mainLight = new THREE.DirectionalLight(0xffffff, 0.8);
+			mainLight.position.set(0, 0, 10);
+			mainLight.castShadow = true;
+			mainLight.shadow.mapSize.width = 2048;
+			mainLight.shadow.mapSize.height = 2048;
+			scene.add(mainLight);
+
+			const fillLight = new THREE.DirectionalLight(0xffffff, 0.4);
+			fillLight.position.set(-5, 3, -5);
+			scene.add(fillLight);
+
+			const backLight = new THREE.DirectionalLight(0xffffff, 0.3);
+			backLight.position.set(0, 0, -10);
+			scene.add(backLight);
+
+			// Card group
+			const cardGroup = new THREE.Group();
+			scene.add(cardGroup);
+
+			// Language state and translations
+			let currentLang: 'es' | 'en' = 'es';
+			const translations = {
+				es: {
+					countdownLabel: 'Faltan',
+					days: 'días',
+					hours: 'horas',
+					minutes: 'minutos',
+				},
+				en: {
+					countdownLabel: 'Countdown',
+					days: 'days',
+					hours: 'hours',
+					minutes: 'minutes',
+				},
+			};
+
+			// Load invitation textures
+			const textureLoader = new THREE.TextureLoader();
+			const esTexture = textureLoader.load('/es-mx-invitation.png');
+			esTexture.colorSpace = THREE.SRGBColorSpace;
+			const enTexture = textureLoader.load('/en-us-invitation.png');
+			enTexture.colorSpace = THREE.SRGBColorSpace;
+			const invitationTexture = esTexture;
+
+			// Card dimensions (based on invitation aspect ratio ~0.707) - smaller for mobile
+			const cardWidth = 1.8;
+			const cardHeight = cardWidth / 0.707;
+			const cardDepth = 0.015;
+
+			// Create card with rounded edges effect using layers
+			const cardGeometry = new THREE.BoxGeometry(cardWidth, cardHeight, cardDepth, 1, 1, 1);
+
+			// Front material with invitation - clean, no emissive for sharp image
+			const frontMaterial = new THREE.MeshBasicMaterial({
+				map: invitationTexture,
+			});
+
+			// Back material - white
+			const backMaterial = new THREE.MeshBasicMaterial({
+				color: 0xffffff,
+			});
+
+			// Edge material (metallic gold)
+			const edgeMaterial = new THREE.MeshStandardMaterial({
+				color: 0xd4af37,
+				roughness: 0.25,
+				metalness: 0.85,
+			});
+
+			// Create card mesh with multiple materials
+			const materials = [
+				edgeMaterial, // right
+				edgeMaterial, // left
+				edgeMaterial, // top
+				edgeMaterial, // bottom
+				frontMaterial, // front
+				backMaterial, // back
+			];
+
+			const card = new THREE.Mesh(cardGeometry, materials);
+			card.castShadow = true;
+			card.receiveShadow = true;
+			cardGroup.add(card);
+
+			// Add subtle shadow plane
+			const shadowPlaneGeometry = new THREE.PlaneGeometry(10, 10);
+			const shadowPlaneMaterial = new THREE.ShadowMaterial({
+				opacity: 0.15,
+			});
+			const shadowPlane = new THREE.Mesh(shadowPlaneGeometry, shadowPlaneMaterial);
+			shadowPlane.rotation.x = -Math.PI / 2;
+			shadowPlane.position.y = -cardHeight / 2 - 0.5;
+			shadowPlane.receiveShadow = true;
+			scene.add(shadowPlane);
+
+			// Entrance animation state
+			let entranceProgress = 0;
+			const entranceDuration = 2.5; // seconds for the flip animation
+			const entranceStartScale = 0.8;
+
+			// Start showing the back of the card
+			cardGroup.rotation.y = Math.PI;
+
+			// Interaction state
+			let isDragging = false;
+			let previousMousePosition = { x: 0, y: 0 };
+			let targetRotation = { x: 0, y: 0 };
+			let currentRotation = { x: 0, y: 0 };
+			let autoRotate = true;
+			let lastInteractionTime = 0;
+
+			// Mouse/touch handlers
+			const onPointerDown = (e: PointerEvent) => {
+				isDragging = true;
+				previousMousePosition = { x: e.clientX, y: e.clientY };
+				autoRotate = false;
+				lastInteractionTime = Date.now();
+			};
+
+			const onPointerMove = (e: PointerEvent) => {
+				if (!isDragging) return;
+
+				const deltaMove = {
+					x: e.clientX - previousMousePosition.x,
+					y: e.clientY - previousMousePosition.y,
+				};
+
+				targetRotation.y += deltaMove.x * 0.005;
+				targetRotation.x += deltaMove.y * 0.005;
+
+				// Clamp vertical rotation
+				targetRotation.x = Math.max(-Math.PI / 4, Math.min(Math.PI / 4, targetRotation.x));
+
+				previousMousePosition = { x: e.clientX, y: e.clientY };
+			};
+
+			const onPointerUp = () => {
+				isDragging = false;
+				lastInteractionTime = Date.now();
+			};
+
+			// Scroll/wheel for zoom - adjusted range for mobile
+			let targetZoom = 7;
+			const onWheel = (e: WheelEvent) => {
+				e.preventDefault();
+				targetZoom += e.deltaY * 0.005;
+				targetZoom = Math.max(4, Math.min(10, targetZoom));
+				lastInteractionTime = Date.now();
+				autoRotate = false;
+			};
+
+			renderer.domElement.addEventListener('pointerdown', onPointerDown);
+			renderer.domElement.addEventListener('pointermove', onPointerMove);
+			renderer.domElement.addEventListener('pointerup', onPointerUp);
+			renderer.domElement.addEventListener('pointerleave', onPointerUp);
+			renderer.domElement.addEventListener('wheel', onWheel, { passive: false });
+
+			// Resize handler
+			const onResize = () => {
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+				renderer.setSize(window.innerWidth, window.innerHeight);
+				composer.setSize(window.innerWidth, window.innerHeight);
+			};
+			window.addEventListener('resize', onResize);
+
+			// Animation loop
+			const clock = new THREE.Clock();
+
+			const animate = () => {
+				requestAnimationFrame(animate);
+				const time = clock.getElapsedTime();
+
+				// Entrance animation - flip from back to front
+				if (entranceProgress < 1) {
+					entranceProgress = Math.min(1, time / entranceDuration);
+					// Ease out cubic for smooth deceleration
+					const eased = 1 - Math.pow(1 - entranceProgress, 3);
+
+					// Scale up
+					const scale = entranceStartScale + (1 - entranceStartScale) * eased;
+					cardGroup.scale.setScalar(scale);
+
+					// Rotate from back (PI) to front (0)
+					cardGroup.rotation.y = Math.PI * (1 - eased);
+
+					// Update target rotation when animation completes
+					if (entranceProgress >= 1) {
+						targetRotation.y = 0;
+						currentRotation.y = 0;
+					}
+				}
+
+				// Only apply rotation controls after entrance animation
+				if (entranceProgress >= 1) {
+					// Resume auto-rotate after inactivity
+					if (Date.now() - lastInteractionTime > 3000) {
+						autoRotate = true;
+					}
+
+					// Auto-rotate
+					if (autoRotate) {
+						targetRotation.y += 0.002;
+						targetRotation.x = Math.sin(time * 0.5) * 0.1;
+					}
+
+					// Smooth rotation interpolation
+					currentRotation.x += (targetRotation.x - currentRotation.x) * 0.05;
+					currentRotation.y += (targetRotation.y - currentRotation.y) * 0.05;
+
+					cardGroup.rotation.x = currentRotation.x;
+					cardGroup.rotation.y = currentRotation.y;
+				}
+
+				// Subtle floating animation
+				cardGroup.position.y = Math.sin(time * 0.8) * 0.05;
+
+				// Smooth zoom
+				camera.position.z += (targetZoom - camera.position.z) * 0.05;
+
+				// Use composer for post-processing
+				composer.render();
+			};
+
+			animate();
+
+			// Countdown timer
+			const weddingDate = new Date('2026-01-11T09:00:00-06:00'); // Mexico City time
+
+			function updateCountdown() {
+				const now = new Date();
+				const diff = weddingDate.getTime() - now.getTime();
+
+				if (diff > 0) {
+					const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+					const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+					const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+					document.getElementById('days')!.textContent = String(days);
+					document.getElementById('hours')!.textContent = String(hours).padStart(2, '0');
+					document.getElementById('minutes')!.textContent = String(minutes).padStart(2, '0');
+				}
+			}
+
+			updateCountdown();
+			setInterval(updateCountdown, 60000);
+
+			// Show countdown and language toggle after a short delay
+			setTimeout(() => {
+				const countdown = document.getElementById('countdown');
+				const langToggle = document.getElementById('lang-toggle');
+				if (countdown) countdown.style.opacity = '1';
+				if (langToggle) langToggle.style.opacity = '1';
+			}, 1500);
+
+			// Language switching
+			function updateLabels() {
+				const t = translations[currentLang];
+				document.getElementById('countdown-label')!.textContent = t.countdownLabel;
+				document.getElementById('days-label')!.textContent = t.days;
+				document.getElementById('hours-label')!.textContent = t.hours;
+				document.getElementById('minutes-label')!.textContent = t.minutes;
+			}
+
+			function setLanguage(lang: 'es' | 'en') {
+				if (lang === currentLang) return;
+				currentLang = lang;
+
+				// Update texture
+				frontMaterial.map = lang === 'es' ? esTexture : enTexture;
+				frontMaterial.needsUpdate = true;
+
+				// Update labels
+				updateLabels();
+
+				// Update button styles
+				const btnEs = document.getElementById('btn-es')!;
+				const btnEn = document.getElementById('btn-en')!;
+				if (lang === 'es') {
+					btnEs.classList.add('bg-[#f0ebe4]', 'text-[#4a4a50]');
+					btnEs.classList.remove('text-[#8a8a90]');
+					btnEn.classList.remove('bg-[#f0ebe4]', 'text-[#4a4a50]');
+					btnEn.classList.add('text-[#8a8a90]');
+				} else {
+					btnEn.classList.add('bg-[#f0ebe4]', 'text-[#4a4a50]');
+					btnEn.classList.remove('text-[#8a8a90]');
+					btnEs.classList.remove('bg-[#f0ebe4]', 'text-[#4a4a50]');
+					btnEs.classList.add('text-[#8a8a90]');
+				}
+			}
+
+			document.getElementById('btn-es')!.addEventListener('click', () => setLanguage('es'));
+			document.getElementById('btn-en')!.addEventListener('click', () => setLanguage('en'));
+		</script>
+	</body>
+</html>
