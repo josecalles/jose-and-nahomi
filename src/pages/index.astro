@@ -33,6 +33,28 @@ const description = "Invitación a la boda civil de Jose Calles y Nahomi Santos"
         <meta name="twitter:image" content={`${Astro.site}twitter.png`}/>
 	</head>
 	<body class="overflow-hidden bg-[#faf8f5]">
+		<!-- Loading Overlay -->
+		<div id="loading-overlay" class="fixed inset-0 w-full h-full bg-[#faf8f5] z-50 flex items-center justify-center transition-opacity duration-700">
+			<div class="loading-spinner"></div>
+		</div>
+
+		<style>
+			.loading-spinner {
+				width: 40px;
+				height: 40px;
+				border: 2px solid #e5e0d8;
+				border-top-color: #c9a96e;
+				border-radius: 50%;
+				animation: spin 1s ease-in-out infinite;
+			}
+
+			@keyframes spin {
+				to {
+					transform: rotate(360deg);
+				}
+			}
+		</style>
+
 		<div id="canvas-container" class="fixed inset-0 w-full h-full"></div>
 
 		<!-- Countdown Timer -->
@@ -160,13 +182,33 @@ const description = "Invitación a la boda civil de Jose Calles y Nahomi Santos"
 				return texture;
 			}
 
-			// Front textures
-			const esFrontTexture = configureTexture(textureLoader.load('/es-mx-front.png'));
-			const enFrontTexture = configureTexture(textureLoader.load('/en-us-front.png'));
+			// Load texture with promise and timeout
+			function loadTexture(url: string): Promise<THREE.Texture> {
+				return new Promise((resolve, reject) => {
+					const timeout = setTimeout(() => {
+						reject(new Error(`Timeout loading ${url}`));
+					}, 10000);
 
-			// Back textures
-			const esBackTexture = configureTexture(textureLoader.load('/es-mx-back.png'));
-			const enBackTexture = configureTexture(textureLoader.load('/en-us-back.png'));
+					textureLoader.load(
+						url,
+						(texture) => {
+							clearTimeout(timeout);
+							resolve(configureTexture(texture));
+						},
+						undefined,
+						(error) => {
+							clearTimeout(timeout);
+							reject(error);
+						}
+					);
+				});
+			}
+
+			// Texture references (will be populated after loading)
+			let esFrontTexture: THREE.Texture;
+			let enFrontTexture: THREE.Texture;
+			let esBackTexture: THREE.Texture;
+			let enBackTexture: THREE.Texture;
 
 			// Card dimensions (based on invitation aspect ratio ~0.707) - smaller for mobile
 			const cardWidth = 1.8;
@@ -176,15 +218,9 @@ const description = "Invitación a la boda civil de Jose Calles y Nahomi Santos"
 			// Create card with rounded edges effect using layers
 			const cardGeometry = new THREE.BoxGeometry(cardWidth, cardHeight, cardDepth, 1, 1, 1);
 
-			// Front material with invitation - clean, no emissive for sharp image
-			const frontMaterial = new THREE.MeshBasicMaterial({
-				map: esFrontTexture,
-			});
-
-			// Back material with back image
-			const backMaterial = new THREE.MeshBasicMaterial({
-				map: esBackTexture,
-			});
+			// Materials (textures will be assigned after loading)
+			const frontMaterial = new THREE.MeshBasicMaterial();
+			const backMaterial = new THREE.MeshBasicMaterial();
 
 			// Edge material (metallic gold)
 			const edgeMaterial = new THREE.MeshStandardMaterial({
@@ -297,7 +333,7 @@ const description = "Invitación a la boda civil de Jose Calles y Nahomi Santos"
 			window.addEventListener('resize', onResize);
 
 			// Animation loop
-			const clock = new THREE.Clock();
+			const clock = new THREE.Clock(false); // Don't auto-start
 
 			const animate = () => {
 				requestAnimationFrame(animate);
@@ -354,8 +390,6 @@ const description = "Invitación a la boda civil de Jose Calles y Nahomi Santos"
 				composer.render();
 			};
 
-			animate();
-
 			// Countdown timer
 			const weddingDate = new Date('2026-01-11T09:00:00-06:00'); // Mexico City time
 
@@ -374,16 +408,59 @@ const description = "Invitación a la boda civil de Jose Calles y Nahomi Santos"
 				}
 			}
 
-			updateCountdown();
-			setInterval(updateCountdown, 60000);
+			// Hide loading overlay and start scene
+			function startScene() {
+				const loadingOverlay = document.getElementById('loading-overlay');
+				if (loadingOverlay) {
+					loadingOverlay.style.opacity = '0';
+					setTimeout(() => {
+						loadingOverlay.style.display = 'none';
+					}, 700);
+				}
 
-			// Show countdown and language toggle after a short delay
-			setTimeout(() => {
-				const countdown = document.getElementById('countdown');
-				const langToggle = document.getElementById('lang-toggle');
-				if (countdown) countdown.style.opacity = '1';
-				if (langToggle) langToggle.style.opacity = '1';
-			}, 1500);
+				// Start the animation
+				clock.start();
+				animate();
+
+				// Update countdown immediately and start interval
+				updateCountdown();
+				setInterval(updateCountdown, 60000);
+
+				// Show countdown and language toggle after a short delay
+				setTimeout(() => {
+					const countdown = document.getElementById('countdown');
+					const langToggle = document.getElementById('lang-toggle');
+					if (countdown) countdown.style.opacity = '1';
+					if (langToggle) langToggle.style.opacity = '1';
+				}, 1500);
+			}
+
+			// Initialize: load textures, then start animation
+			async function init() {
+				// Load all textures in parallel
+				const [esFront, enFront, esBack, enBack] = await Promise.all([
+					loadTexture('/es-mx-front.png'),
+					loadTexture('/en-us-front.png'),
+					loadTexture('/es-mx-back.png'),
+					loadTexture('/en-us-back.png'),
+				]);
+
+				// Assign textures
+				esFrontTexture = esFront;
+				enFrontTexture = enFront;
+				esBackTexture = esBack;
+				enBackTexture = enBack;
+
+				// Apply initial textures to materials
+				frontMaterial.map = esFrontTexture;
+				frontMaterial.needsUpdate = true;
+				backMaterial.map = esBackTexture;
+				backMaterial.needsUpdate = true;
+
+				startScene();
+			}
+
+			init();
 
 			// Language switching
 			function updateLabels() {
