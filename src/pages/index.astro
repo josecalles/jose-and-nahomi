@@ -188,9 +188,11 @@ const description = "Invitación a la boda civil de Jose Calles y Nahomi Santos"
 
 			// Edge material (metallic gold)
 			const edgeMaterial = new THREE.MeshStandardMaterial({
-				color: 0xd4af37,
-				roughness: 0.25,
-				metalness: 0.85,
+				color: 0xc9a96e,
+				roughness: 0.45,
+				metalness: 0.5,
+				emissive: 0xc9a96e,
+				emissiveIntensity: 0.25,
 			});
 
 			// Create card mesh with multiple materials
@@ -224,8 +226,8 @@ const description = "Invitación a la boda civil de Jose Calles y Nahomi Santos"
 			const entranceDuration = 2.5; // seconds for the flip animation
 			const entranceStartScale = 0.8;
 
-			// Start showing the back of the card
-			cardGroup.rotation.y = Math.PI;
+			// Start showing the front of the card
+			cardGroup.rotation.y = 0;
 
 			// Interaction state
 			let isDragging = false;
@@ -301,7 +303,7 @@ const description = "Invitación a la boda civil de Jose Calles y Nahomi Santos"
 				requestAnimationFrame(animate);
 				const time = clock.getElapsedTime();
 
-				// Entrance animation - flip from back to front
+				// Entrance animation - flip from front to back
 				if (entranceProgress < 1) {
 					entranceProgress = Math.min(1, time / entranceDuration);
 					// Ease out cubic for smooth deceleration
@@ -311,13 +313,13 @@ const description = "Invitación a la boda civil de Jose Calles y Nahomi Santos"
 					const scale = entranceStartScale + (1 - entranceStartScale) * eased;
 					cardGroup.scale.setScalar(scale);
 
-					// Rotate from back (PI) to front (0)
-					cardGroup.rotation.y = Math.PI * (1 - eased);
+					// Rotate from front (0) to back (PI)
+					cardGroup.rotation.y = Math.PI * eased;
 
 					// Update target rotation when animation completes
 					if (entranceProgress >= 1) {
-						targetRotation.y = 0;
-						currentRotation.y = 0;
+						targetRotation.y = Math.PI;
+						currentRotation.y = Math.PI;
 					}
 				}
 
@@ -330,8 +332,8 @@ const description = "Invitación a la boda civil de Jose Calles y Nahomi Santos"
 
 					// Auto-rotate
 					if (autoRotate) {
-						targetRotation.y += 0.002;
-						targetRotation.x = Math.sin(time * 0.5) * 0.1;
+						targetRotation.y += 0.004;
+						targetRotation.x = Math.sin(time * 0.8) * 0.1;
 					}
 
 					// Smooth rotation interpolation
@@ -343,7 +345,7 @@ const description = "Invitación a la boda civil de Jose Calles y Nahomi Santos"
 				}
 
 				// Subtle floating animation with slight downward offset
-				cardGroup.position.y = -0.15 + Math.sin(time * 0.8) * 0.05;
+				cardGroup.position.y = -0.15 + Math.sin(time * 1.2) * 0.05;
 
 				// Smooth zoom
 				camera.position.z += (targetZoom - camera.position.z) * 0.05;
