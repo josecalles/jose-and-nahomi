@@ -32,7 +32,7 @@ const description = "Invitación a la boda civil de Jose Calles y Nahomi Santos"
         <meta name="twitter:description" content={description}/>
         <meta name="twitter:image" content={`${Astro.site}twitter.png`}/>
 	</head>
-	<body class="overflow-hidden bg-[#faf8f5]">
+	<body class="overflow-hidden bg-[#faf8f5] select-none">
 		<!-- Loading Overlay -->
 		<div id="loading-overlay" class="fixed inset-0 w-full h-full bg-[#faf8f5] z-50 flex items-center justify-center transition-opacity duration-700">
 			<div class="loading-spinner"></div>
@@ -438,18 +438,17 @@ const description = "Invitación a la boda civil de Jose Calles y Nahomi Santos"
 			// Initialize: load textures, then start animation
 			async function init() {
 				// Load all textures in parallel
-				const [esFront, enFront, esBack, enBack] = await Promise.all([
+				const [esFront, enFront, backShared] = await Promise.all([
 					loadTexture('/es-mx-front.png'),
 					loadTexture('/en-us-front.png'),
-					loadTexture('/es-mx-back.png'),
-					loadTexture('/en-us-back.png'),
+					loadTexture('/back-shared.png'),
 				]);
 
 				// Assign textures
 				esFrontTexture = esFront;
 				enFrontTexture = enFront;
-				esBackTexture = esBack;
-				enBackTexture = enBack;
+				esBackTexture = backShared;
+				enBackTexture = backShared;
 
 				// Apply initial textures to materials
 				frontMaterial.map = esFrontTexture;
